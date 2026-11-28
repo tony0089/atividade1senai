@@ -53,7 +53,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-function limparEndereco() {
+function limparCampos() {
   document.getElementById('logradouro').value = '';
   document.getElementById('bairro').value = '';
   document.getElementById('cidade').value = '';
@@ -61,14 +61,41 @@ function limparEndereco() {
 }
 
 async function buscarCep() {
-  const cep = document.getElementById('cep').value.replace(/\D/g, '');
-  limparEndereco();
+  const cepInput = document.getElementById('cep').value;
+  const msgErro = document.getElementById('mensagem-erro');
+  const cepLimpo = cepInput.replace(/\D/g, '');
 
-  const resposta = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-  const dados = await resposta.json();
+  msgErro.textContent = '';
+  limparCampos();
 
-  document.getElementById('logradouro').value = dados.logradouro;
-  document.getElementById('bairro').value = dados.bairro;
-  document.getElementById('cidade').value = dados.localidade;
-  document.getElementById('uf').value = dados.uf;
+  // Erro 1: CEP incompleto
+  if (cepLimpo.length !== 8) {
+    msgErro.textContent = 'CEP incompleto. Digite exatamente 8 números.';
+    return;
+  }
+
+  try {
+    const resposta = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+    
+    if (!resposta.ok) {
+      throw new Error('Erro na requisição');
+    }
+
+    const dados = await resposta.json();
+
+    // Erro 2: CEP inexistente
+    if (dados.erro) {
+      msgErro.textContent = 'CEP não encontrado ou inexistente.';
+      return;
+    }
+
+    document.getElementById('logradouro').value = dados.logradouro;
+    document.getElementById('bairro').value = dados.bairro;
+    document.getElementById('cidade').value = dados.localidade;
+    document.getElementById('uf').value = dados.uf;
+
+  } catch (erro) {
+    // Erro 3: Sem conexão
+    msgErro.textContent = 'Erro de conexão. Verifique sua internet e tente novamente.';
+  }
 }
